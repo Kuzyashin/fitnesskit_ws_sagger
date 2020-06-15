@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta content="IE=edge" http-equiv="X-UA-Compatible">
+	<meta content="width=device-width, initial-scale=1" name="viewport">
+	<meta content="" name="description">
+	<meta content="" name="author">
+	<link href="../../favicon.ico" rel="icon">
+
+	<title>WebSocket Client</title>
+	<!-- Bootstrap core CSS -->
+	<link href="./assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+	<!-- Custom styles for this template -->
+	<link href="style.css" rel="stylesheet">
+
+	<!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+	<!--[if lt IE 9]>
+	<script src="./assets/bootstrap/js/ie8-responsive-file-warning.js"></script><![endif]-->
+	<script src="./assets/bootstrap/js/ie-emulation-modes-warning.js"></script>
+
+	<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+	<script src="./assets/bootstrap/js/ie10-viewport-bug-workaround.js"></script>
+
+	<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	<!--[if lt IE 9]>
+	<script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+	<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	<![endif]-->
+
+	<script src="./js/wsLogic.js"></script>
+</head>
+
+<div id="content">
+
+	<div class="Middle">
+
+		<div class="header">
+			<h4 class="text-muted">Fitness-Kit WS SWAGGER (maybe)</h4>
+		</div>
+
+		<div class="Middle">
+			<h4>Описание эндпоинта</h4>
+			Доступен по адресу: <strong>wss://backend.mobile.fitnesskit.awkr.site/lessons</strong><br>
+			При подключении к нему, <strong>mobile-server</strong> отправляет запрос в базу данных за текущими данными,
+			которые могут быть уже устаревшими.<br>
+			После получения ответа из БД, <strong>mobile-server</strong> отправляет данные по <strong>WS</strong> на клиент<br>
+			Далее <strong>mobile-server</strong> отправляет запрос в очередь <strong>AMQP</strong><br>
+			Запрос выглядит так <strong>{"action": "update", "channel_name" : "foobaar:123foobar"}</strong>, где
+			<strong>channel_name</strong> - имя канала из <strong>django_channels</strong><br>
+			Сообщение из этой очереди слушает <strong>integration-server</strong>, и при получении сообщения отправляет
+			запрос за новыми данными в стороннее API (sample.fitnesskit).<br>
+			Как только ответ получен, и данные в БД обновлены, <strong>integration-server</strong> отправляет запрос
+			в очередь <strong>AMQP</strong>, которую слушает <strong>mobile-server</strong><br>
+			Запрос выглядит так <strong>{"action": "ready", "channel_name" : "foobaar:123foobar"}</strong>, где
+			<strong>channel_name</strong> - получено от <strong>mobile-server</strong><br>
+			При получения сообщения, <strong>mobile-server</strong> отправляет запрос в базу данных за новыми данными<br>
+			После получения ответа из БД, <strong>mobile-server</strong> отправляет данные по <strong>WS</strong> на клиент
+			и разрывает соединнение<br>
+			<br>
+			<br>Процесс обмена данными выглядит примерно так:<br><br>
+			MOBILE APP ---------WS-------> MOBILE SERVER -- (request for data)<br>
+			MOBILE SERVER ------SQL------> DATABASE ------- (request for data)<br>
+			DATABASE -----------QS-------> MOBILE SEVER --- (queryset)<br>
+			MOBILE SERVER ------WS-------> MOBILE APP ----- (queryset)<br>
+			MOBILE SERVER ------AMQP-----> BASE SERVER ---- (request to refresh data in db)<br>
+			BASE SERVER --------HTTP-----> CLIENT SERVER -- (request for new data)<br>
+			CLIENT SERVER ------HTTP-----> BASE SERVER ---- (response with new data)<br>
+			BASE SERVER --------AMQP-----> MOBILE SEVER --- (request to refresh data in mobile client)<br>
+			MOBILE SERVER ------SQL------> DATABASE ------- (request for new data)<br>
+			DATABASE -----------QS-------> MOBILE SEVER --- (queryset with new data)<br>
+			MOBILE SERVER ------WS-------> MOBILE APP ----- (response with new data)<br><br><br>
+			Также эндпоинт доступен по http протоколу <strong>https://backend.mobile.fitnesskit.awkr.site/lessons</strong>
+		</div>
+
+		<div>
+			<form class="form-horizontal">
+				<div class="form-group">
+					<label class="col-sm-1 control-label" for="serverSelected" style="text-align: left">URL:</label>
+
+					<div class="col-sm-7">
+						<input class="form-control" id="serverSelected" placeholder="ws://domain/path or wss://domain/path"
+						       value="wss://backend.mobile.fitnesskit.awkr.site/lessons"
+						       type="text"/>
+
+					</div>
+					<div class="col-sm-1">
+						<button class="btn btn-sm btn-primary" onclick="connectToServer()"
+						        type="button">
+							Connect
+						</button>
+					</div>
+					<div class="col-sm-1">
+						<button class="btn btn-sm btn-danger" onclick="disconnectToServer()"
+						        type="button">
+							Disconnect
+						</button>
+					</div>
+				</div>
+			</form>
+
+		</div>
+		<div class="input-group">
+			Connection Status:
+			<span id="connectionStatus">
+    Disconnected
+    </span>
+			<span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign" id="connection_error_icon"
+			      style="color:#c9302c; visibility: hidden"></span>
+		</div>
+
+		<span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign" id="error_icon"
+		      style="color:#c9302c; visibility: hidden"></span>
+
+		<button class="btn btn-sm btn-success" onclick="clearLog()" type="button">
+			Clear
+		</button>
+
+		<br><br>
+
+		<div id="logContainer">
+			<ul class="list-group" id="responseFromServer">
+			</ul>
+		</div>
+	</div>
+
+</div>
+
+
+</body>
+</html>
