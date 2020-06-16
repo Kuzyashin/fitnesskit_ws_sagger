@@ -43,6 +43,7 @@
 		<div class="Middle">
 			<h4>Описание эндпоинта</h4>
 			Доступен по адресу: <strong>wss://backend.mobile.fitnesskit.awkr.site/lessons</strong><br>
+			Поддерживается передача параметров <strong>limit</strong> и <strong>offset</strong><br>
 			При подключении к нему, <strong>mobile-server</strong> отправляет запрос в базу данных за текущими данными,
 			которые могут быть уже устаревшими.<br>
 			После получения ответа из БД, <strong>mobile-server</strong> отправляет данные по <strong>WS</strong> на клиент<br>
@@ -81,7 +82,7 @@
 
 					<div class="col-sm-7">
 						<input class="form-control" id="serverSelected" placeholder="ws://domain/path or wss://domain/path"
-						       value="wss://backend.mobile.fitnesskit.awkr.site/lessons"
+						       value="wss://backend.mobile.fitnesskit.awkr.site/lessons?limit=5&offset=5"
 						       type="text"/>
 
 					</div>
